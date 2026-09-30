@@ -91,11 +91,20 @@ import { contentItems } from './content.mjs'
     return item.status !== 'published' || isOverdue(item)
   }
 
+  // Which content types belong to each sidebar section. The sidebar counts and the tabs share this.
+  const SECTION_FILTERS = {
+    newsletters: item => ['Newsletter', 'Announcement'].includes(item.type),
+    communities: item => item.type === 'Community update',
+    content: item => !['Newsletter', 'Announcement', 'Community update'].includes(item.type),
+  }
+
+  function sectionItems(view) {
+    const filter = SECTION_FILTERS[view]
+    return filter ? items.filter(filter) : [...items]
+  }
+
   function routeItems() {
-    let results = [...items]
-    if (state.view === 'newsletters') results = results.filter(item => ['Newsletter', 'Announcement'].includes(item.type))
-    if (state.view === 'communities') results = results.filter(item => item.type === 'Community update')
-    if (state.view === 'content') results = results.filter(item => !['Newsletter', 'Announcement', 'Community update'].includes(item.type))
+    let results = sectionItems(state.view)
     if (state.status !== 'all') results = results.filter(item => item.status === state.status)
     if (state.search.trim()) {
       const query = state.search.trim().toLowerCase()
@@ -161,7 +170,7 @@ import { contentItems } from './content.mjs'
     document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === state.view))
     const labels = { home: 'Overview', content: 'Pages & guidance', newsletters: 'Newsletters', communities: 'Communities', insights: 'Insights' }
     document.getElementById('breadcrumb-current').textContent = labels[state.view] || 'Overview'
-    document.getElementById('nav-content-count').textContent = items.length
+    document.querySelectorAll('[data-count]').forEach(badge => { badge.textContent = sectionItems(badge.dataset.count).length })
     if (state.view === 'home') renderHome()
     else if (state.view === 'insights') renderInsights()
     else renderLibrary()
