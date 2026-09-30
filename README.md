@@ -4,13 +4,17 @@ A local CMS prototype for an employee experience workspace. It includes a librar
 
 ## Run locally
 
-From this folder, start a local server:
+From this folder, start the Node.js server:
 
 ```sh
-python3 -m http.server 4173
+npm start
 ```
 
-Then open `http://localhost:4173`.
+Then open `http://localhost:8080`. The server uses Cloud Run's `PORT` value when set and defaults to `8080` locally.
+
+## Cloud Run
+
+Use the Node.js buildpack with build context `/`. The buildpack runs `npm start`; leave Entrypoint and Function target blank. The server exposes only the site files and listens on `PORT`.
 
 ## CMS features
 
