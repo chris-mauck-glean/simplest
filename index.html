@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f6">
+  <title>Simplest — Content workspace</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#home" aria-label="Simplest home">
+        <img class="brand-mark" src="assets/simplest-mark.png" alt="" aria-hidden="true">
+        <span class="brand-name">simplest<span class="brand-period">.</span></span>
+      </a>
+
+      <div class="workspace-switcher">
+        <span class="workspace-icon">E</span>
+        <span class="workspace-copy"><strong>Employee Experience</strong><small>Content workspace</small></span>
+        <span class="chevron" aria-hidden="true">⌄</span>
+      </div>
+
+      <p class="nav-label">WORKSPACE</p>
+      <nav class="primary-nav">
+        <button class="nav-item active" data-view="home" type="button" aria-label="Overview" title="Overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-view="content" type="button" aria-label="Pages and guidance" title="Pages and guidance"><span class="nav-icon">▤</span><span>Pages &amp; guidance</span><span class="nav-count" id="nav-content-count">—</span></button>
+        <button class="nav-item" data-view="newsletters" type="button" aria-label="Newsletters" title="Newsletters"><span class="nav-icon">✉</span><span>Newsletters</span></button>
+        <button class="nav-item" data-view="communities" type="button" aria-label="Communities" title="Communities"><span class="nav-icon">◎</span><span>Communities</span></button>
+        <button class="nav-item" data-view="insights" type="button" aria-label="Insights" title="Insights"><span class="nav-icon">▥</span><span>Insights</span></button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-note">
+        <span class="note-orb" aria-hidden="true">✦</span>
+        <div><strong>Make knowledge useful.</strong><p>A simple home for your team's content.</p></div>
+      </div>
+      <button class="profile-button" type="button" aria-label="Signed in as Crypt Captain">
+        <span class="avatar">CC</span><span class="profile-copy"><strong>Crypt Captain</strong><small>Workspace admin</small></span><span class="more-dots">···</span>
+      </button>
+    </aside>
+
+    <main class="main-shell">
+      <header class="topbar">
+        <div class="breadcrumb"><span>Employee Experience</span><span class="slash">/</span><strong id="breadcrumb-current">Overview</strong></div>
+        <div class="topbar-actions">
+          <label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Search content" aria-label="Search content"><kbd>⌘ K</kbd></label>
+          <button class="icon-button notification-button" type="button" aria-label="Notifications"><span aria-hidden="true">♧</span><i></i></button>
+          <span class="avatar top-avatar" aria-hidden="true">CC</span>
+        </div>
+      </header>
+
+      <div class="demo-banner"><span class="banner-dot"></span><span><strong>Employee experience</strong> · People, workplace, and company resources.</span><button type="button" class="banner-close" aria-label="Dismiss notice">×</button></div>
+      <div id="app" class="content-area" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <dialog id="preview-dialog" class="modal preview-modal" aria-labelledby="preview-title">
+    <div id="preview-content"></div>
+  </dialog>
+
+  <dialog id="editor-dialog" class="modal editor-modal" aria-labelledby="editor-title">
+    <form id="editor-form">
+      <div class="modal-topline"><div><p class="eyebrow">CONTENT EDITOR</p><h2 id="editor-title">Create content</h2></div><button type="button" class="close-button" data-action="close-editor" aria-label="Close">×</button></div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label class="field field-wide"><span>Title <b>*</b></span><input name="title" required maxlength="120" placeholder="Give this content a clear title"></label>
+        <label class="field"><span>Content type</span><select name="type"><option>Policy</option><option>Guide</option><option>Checklist</option><option>FAQ</option><option>Announcement</option><option>Newsletter</option><option>Community update</option></select></label>
+        <label class="field"><span>Audience</span><select name="audience"><option>All employees</option><option>New employees</option><option>People managers</option><option>Office employees</option><option>Frequent travelers</option><option>Community members</option><option>Department leaders</option></select></label>
+        <label class="field field-wide"><span>Short summary</span><textarea name="summary" rows="2" maxlength="240" placeholder="Help readers understand what this is about"></textarea></label>
+        <label class="field field-wide"><span>Content</span><textarea name="body" rows="9" placeholder="Write or paste the content here…"></textarea></label>
+        <label class="field"><span>Content owner</span><input name="owner" placeholder="e.g. People Operations"></label>
+        <label class="field"><span>Review by</span><input name="reviewDate" type="date"></label>
+      </div>
+      <div class="editor-footnote"><span class="mini-shield">✓</span> Drafts stay in this browser until published.</div>
+      <div class="modal-actions">
+        <button type="button" class="button button-quiet" data-action="close-editor">Cancel</button>
+        <span class="action-spacer"></span>
+        <button type="submit" class="button button-outline" value="in-review">Submit for review</button>
+        <button type="submit" class="button button-primary" value="draft">Save draft</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
