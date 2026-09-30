@@ -6,7 +6,7 @@
 // Glean settings come from ../.env; environment variables override them.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { createGleanSync } from '../lib/glean.mjs'
+import { PROPERTY_DEFINITIONS, createGleanSync } from '../lib/glean.mjs'
 import { createStore } from '../lib/store.mjs'
 
 const envPath = fileURLToPath(new URL('../../.env', import.meta.url))
@@ -33,19 +33,23 @@ console.log(`Target datasource: ${glean.datasource}; URL pattern: ${urlRegex}`)
 
 if (process.argv.includes('--dry-run')) {
   const sample = published[0] && glean.toDocument(published[0])
-  if (sample) console.log(`Sample document: ${JSON.stringify({ id: sample.id, title: sample.title, viewURL: sample.viewURL, author: sample.author, tags: sample.tags, updatedAt: sample.updatedAt })}`)
+  if (sample) console.log(`Sample document: ${JSON.stringify({ id: sample.id, title: sample.title, viewURL: sample.viewURL, author: sample.author, summary: sample.summary?.textContent, bodyStart: sample.body.textContent.slice(0, 60), customProperties: sample.customProperties })}`)
   if (sample && !new RegExp(urlRegex).test(sample.viewURL)) throw new Error('Sample viewURL does not match the URL pattern.')
   console.log('Dry run only; nothing was sent.')
   process.exit(0)
 }
 
 const current = await glean.getConfig()
-if (current.urlRegex !== urlRegex) {
-  await glean.updateConfig({ ...current, name: glean.datasource, urlRegex })
-  console.log(`Updated datasource URL pattern (was ${current.urlRegex}).`)
+const objectDefinitions = (current.objectDefinitions?.length ? current.objectDefinitions : [{ name: 'Document', docCategory: current.datasourceCategory }])
+  .map(definition => definition.name === 'Document' ? { ...definition, propertyDefinitions: PROPERTY_DEFINITIONS } : definition)
+const needsUpdate = current.urlRegex !== urlRegex || JSON.stringify(current.objectDefinitions) !== JSON.stringify(objectDefinitions)
+if (needsUpdate) {
+  await glean.updateConfig({ ...current, name: glean.datasource, urlRegex, objectDefinitions })
+  console.log('Updated datasource config (URL pattern and custom property definitions).')
 }
 const after = await glean.getConfig()
-console.log(`Datasource check: urlRegex=${after.urlRegex}; test=${after.isTestDatasource}; visibility=${after.datasourceVisibility ?? 'n/a'}`)
+const props = after.objectDefinitions?.find(definition => definition.name === 'Document')?.propertyDefinitions || []
+console.log(`Datasource check: urlRegex=${after.urlRegex}; test=${after.isTestDatasource}; properties=${props.map(p => `${p.name}(${p.propertyType}/${p.uiOptions})`).join(', ')}`)
 
 const sent = await glean.replaceAll(published)
 for (const item of published) await store.setSyncStatus(item.id, 'synced').catch(() => {})
