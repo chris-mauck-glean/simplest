@@ -20,6 +20,8 @@ steps:
       - '--image=gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
       - '--region=us-east1'
       - '--platform=managed'
+      - '--service-account=simplest-run@salessavvy-test.iam.gserviceaccount.com'
+      - '--update-env-vars=FIRESTORE_DATABASE=simplest'
 
 images:
   - 'gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'

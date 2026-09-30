@@ -1,6 +1,12 @@
 # Simplest
 
-A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, announcements, and community updates. Browser edits are saved in that browser’s `localStorage` and are not shared across devices.
+A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, announcements, and community updates. Content is stored in the Firestore database `simplest` (project `salessavvy-test`) through the server’s `/api/content` API, so edits are shared across devices. Anyone who can reach the site can edit; every change keeps the previous version in a `history` subcollection. Without `FIRESTORE_DATABASE` set, the server uses an in-memory store for local development.
+
+Seed the bundled resources (never overwrites existing documents):
+
+```sh
+FIRESTORE_DATABASE=simplest GOOGLE_CLOUD_PROJECT=salessavvy-test node scripts/seed-firestore.mjs
+```
 
 ## Run locally
 

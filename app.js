@@ -3,8 +3,7 @@ import { contentItems } from './content.mjs'
 (() => {
   'use strict'
 
-  const LEGACY_STORAGE_KEY = 'simplest-demo-content-v1'
-  const STORAGE_KEY = 'simplest-employee-content-v2'
+  const OLD_STORAGE_KEYS = ['simplest-demo-content-v1', 'simplest-employee-content-v2']
   const demoDate = '2026-09-30'
   const app = document.getElementById('app')
   const previewDialog = document.getElementById('preview-dialog')
@@ -14,29 +13,49 @@ import { contentItems } from './content.mjs'
   const searchInput = document.getElementById('global-search')
   const state = { view: 'home', status: 'all', search: '', selectedId: null, toastTimer: null }
 
-  function safeStorageGet() {
-    try {
-      window.localStorage.removeItem(LEGACY_STORAGE_KEY)
-      const stored = window.localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) return parsed
-      }
-    } catch (error) {
-      console.warn('Simplest could not read local storage; using bundled content.', error)
-    }
-    return contentItems.map(item => ({ ...item }))
+  // Content is shared through the server API. Bundled content is a read-only fallback.
+  let items = contentItems.map(item => ({ ...item }))
+  let apiAvailable = false
+
+  try {
+    OLD_STORAGE_KEYS.forEach(key => window.localStorage.removeItem(key))
+  } catch {
+    // Browser storage is optional; ignore failures.
   }
 
-  let items = safeStorageGet()
+  async function api(path, options = {}) {
+    const response = await fetch(`/api/content${path}`, {
+      ...options,
+      headers: { Accept: 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`)
+    return payload
+  }
 
-  function saveItems() {
+  async function loadItems() {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+      const { items: loaded } = await api('')
+      if (!Array.isArray(loaded)) throw new Error('Unexpected response.')
+      items = loaded
+      apiAvailable = true
     } catch (error) {
-      showToast('This browser could not save changes. The page will still work for this session.')
-      console.warn('Simplest could not save local data.', error)
+      apiAvailable = false
+      console.warn('Simplest could not load shared content; showing the bundled copy.', error)
+      showToast('Shared content is unavailable. Showing a read-only copy; changes cannot be saved.')
     }
+  }
+
+  function upsertItem(item) {
+    const index = items.findIndex(entry => entry.id === item.id)
+    if (index >= 0) items[index] = item
+    else items.unshift(item)
+  }
+
+  function requireApi() {
+    if (apiAvailable) return true
+    showToast('Changes cannot be saved right now. Reload the page and try again.')
+    return false
   }
 
   function escapeHtml(value) {
@@ -223,17 +242,25 @@ import { contentItems } from './content.mjs'
     if (action.dataset.action === 'edit') openEditor(action.dataset.id)
     if (action.dataset.action === 'close-editor') editorDialog.close()
     if (action.dataset.action === 'close-preview') closePreview()
-    if (action.dataset.action === 'publish') {
-      const item = items.find(entry => entry.id === action.dataset.id)
-      if (!item) return
-      item.status = 'published'
-      item.updatedAt = new Date().toISOString().slice(0, 10)
-      saveItems()
-      render()
-      showToast('Published in Simplest. Browser changes are not included in the Glean index automatically.')
-      openPreview(item.id)
-    }
+    if (action.dataset.action === 'publish') publishItem(action)
   })
+
+  async function publishItem(button) {
+    const id = button.dataset.id
+    if (!items.some(entry => entry.id === id) || !requireApi() || button.disabled) return
+    button.disabled = true
+    try {
+      const { item } = await api(`/${encodeURIComponent(id)}/publish`, { method: 'POST' })
+      upsertItem(item)
+      render()
+      showToast('Published in Simplest. It is not synced to Glean yet.')
+      openPreview(item.id)
+    } catch (error) {
+      showToast(`Could not publish: ${error.message}`)
+    } finally {
+      button.disabled = false
+    }
+  }
 
   document.addEventListener('keydown', event => {
     if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-open]')) {
@@ -255,15 +282,16 @@ import { contentItems } from './content.mjs'
     event.currentTarget.closest('.demo-banner').remove()
   })
 
-  editorForm.addEventListener('submit', event => {
+  let saving = false
+  editorForm.addEventListener('submit', async event => {
     event.preventDefault()
-    if (!editorForm.reportValidity()) return
+    if (saving || !editorForm.reportValidity() || !requireApi()) return
     const formData = new FormData(editorForm)
     const id = String(formData.get('id') || '')
     const existing = items.find(item => item.id === id)
     const status = event.submitter?.value === 'in-review' ? 'in-review' : 'draft'
-    const updated = {
-      id: existing ? existing.id : `content-${Date.now()}`,
+    const targetId = existing ? existing.id : `content-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const fields = {
       title: String(formData.get('title') || '').trim(),
       type: String(formData.get('type') || 'Policy'),
       summary: String(formData.get('summary') || '').trim(),
@@ -271,18 +299,29 @@ import { contentItems } from './content.mjs'
       audience: String(formData.get('audience') || 'All employees'),
       owner: String(formData.get('owner') || 'Unassigned').trim() || 'Unassigned',
       status,
-      updatedAt: new Date().toISOString().slice(0, 10),
       reviewDate: String(formData.get('reviewDate') || ''),
     }
-    if (existing) Object.assign(existing, updated)
-    else items.unshift(updated)
-    saveItems()
-    editorDialog.close()
-    render()
-    showToast(status === 'in-review' ? 'Submitted for review in Simplest.' : 'Draft saved in Simplest.')
+    const buttons = editorForm.querySelectorAll('button[type="submit"]')
+    saving = true
+    buttons.forEach(button => { button.disabled = true })
+    try {
+      const { item } = await api(`/${encodeURIComponent(targetId)}`, { method: 'PUT', body: JSON.stringify(fields) })
+      upsertItem(item)
+      editorDialog.close()
+      render()
+      showToast(status === 'in-review' ? 'Submitted for review in Simplest.' : 'Draft saved in Simplest.')
+    } catch (error) {
+      showToast(`Could not save: ${error.message}`)
+    } finally {
+      saving = false
+      buttons.forEach(button => { button.disabled = false })
+    }
   })
 
   render()
-  const initialDocId = new URLSearchParams(window.location.search).get('doc')
-  if (initialDocId) openPreview(initialDocId, false)
+  loadItems().then(() => {
+    render()
+    const initialDocId = new URLSearchParams(window.location.search).get('doc')
+    if (initialDocId) openPreview(initialDocId, false)
+  })
 })()
