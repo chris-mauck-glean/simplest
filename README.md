@@ -14,7 +14,7 @@ Then open `http://localhost:8080`. The server uses Cloud Run's `PORT` value when
 
 ## Cloud Run
 
-Use the Node.js buildpack with build context `/`. The buildpack runs `npm start`; leave Entrypoint and Function target blank. The server exposes only the site files and listens on `PORT`. The Cloud Build trigger watches `main`, so each push starts a build and deployment.
+Use the Dockerfile at `/Dockerfile` with build context `/`. It starts the Node.js 22 server, which listens on Cloud Run's `PORT` (default `8080`) and serves only the site files. Leave the container command and arguments blank. The Cloud Build trigger watches `main`, so each push starts a build and deployment.
 
 ## CMS features
 
