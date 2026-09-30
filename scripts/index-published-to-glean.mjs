@@ -156,6 +156,26 @@ async function main() {
     return
   }
 
+  // Removes every bundled Simplest document from the Glean index. CMS/Firestore content is not touched.
+  if (process.argv.includes('--delete-all')) {
+    const ids = [...new Set(contentItems.map(item => item.id))]
+    const failed = []
+    for (let index = 0; index < ids.length; index += 1) {
+      if (index > 0) await new Promise(resolve => setTimeout(resolve, 1100))
+      try {
+        await post('deletedocument', { datasource: datasourceName, objectType: 'Document', id: ids[index] })
+      } catch (error) {
+        failed.push(`${ids[index]}: ${error.message}`)
+      }
+    }
+    console.log(`Delete requested for ${ids.length - failed.length} of ${ids.length} documents in ${datasourceName}. Removal from search is asynchronous.`)
+    if (failed.length) {
+      console.log(`Failed:\n${failed.join('\n')}`)
+      process.exitCode = 1
+    }
+    return
+  }
+
   if (process.argv.includes('--dry-run')) {
     for (const item of publishedItems) {
       const viewUrl = new URL(`${baseUrl}/`)

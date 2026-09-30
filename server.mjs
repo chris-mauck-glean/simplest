@@ -4,10 +4,44 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ValidationError, isValidId, validateEdit } from './lib/content-model.mjs'
 import { NotFoundError, createStore } from './lib/store.mjs'
+import { createGleanSync } from './lib/glean.mjs'
 
 const siteRoot = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT || 8080)
 const store = createStore()
+
+let glean = null
+try {
+  glean = createGleanSync()
+} catch (error) {
+  console.error(`Glean sync disabled: ${error.message}`)
+}
+
+// Sync runs before the response so Cloud Run does not throttle it. A failure never blocks the CMS write;
+// it is recorded on the item and retried on the next change or server start.
+async function syncToGlean(item) {
+  if (!glean) return 'disabled'
+  try {
+    await glean.sync(item)
+    await store.setSyncStatus(item.id, 'synced').catch(error => console.error('Could not record sync status.', error))
+    return 'synced'
+  } catch (error) {
+    console.error(`Glean sync failed for ${item.id}: ${error.message}`)
+    await store.setSyncStatus(item.id, 'error', error.message).catch(() => {})
+    return 'error'
+  }
+}
+
+async function retryFailedSyncs() {
+  if (!glean) return
+  try {
+    const failed = await store.listSyncErrors()
+    for (const item of failed) await syncToGlean(item)
+    if (failed.length) console.log(`Retried Glean sync for ${failed.length} item(s).`)
+  } catch (error) {
+    console.error('Could not retry failed Glean syncs.', error)
+  }
+}
 
 const MAX_BODY_BYTES = 64 * 1024
 const WRITE_LIMIT = 30 // writes per client IP per window (best effort, per instance)
@@ -93,16 +127,21 @@ async function handleApi(request, response, pathname) {
   if (!action && request.method === 'PUT') {
     checkWriteRate(request)
     const fields = validateEdit(await readJson(request))
-    return sendJson(response, 200, { item: await store.save(id, fields) })
+    const item = await store.save(id, fields)
+    await syncToGlean(item)
+    return sendJson(response, 200, { item })
   }
   if (!action && request.method === 'DELETE') {
     checkWriteRate(request)
     await store.remove(id)
+    await syncToGlean({ id, deleted: true })
     return sendJson(response, 200, { deleted: id })
   }
   if (action === 'publish' && request.method === 'POST') {
     checkWriteRate(request)
-    return sendJson(response, 200, { item: await store.publish(id) })
+    const item = await store.publish(id)
+    await syncToGlean(item)
+    return sendJson(response, 200, { item })
   }
   throw new HttpError(405, 'Method not allowed.')
 }
@@ -161,5 +200,6 @@ const server = createServer(async (request, response) => {
 })
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Simplest listening on port ${port} (content store: ${store.kind})`)
+  console.log(`Simplest listening on port ${port} (content store: ${store.kind}; Glean sync: ${glean ? glean.datasource : 'off'})`)
+  retryFailedSyncs()
 })

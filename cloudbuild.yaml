@@ -21,7 +21,8 @@ steps:
       - '--region=us-east1'
       - '--platform=managed'
       - '--service-account=simplest-run@salessavvy-test.iam.gserviceaccount.com'
-      - '--update-env-vars=FIRESTORE_DATABASE=simplest'
+      - '--update-env-vars=FIRESTORE_DATABASE=simplest,SIMPLEST_BASE_URL=https://simplest.cloud.run,GLEAN_API_URL=https://glean-public-prod-be.glean.com,GLEAN_DATASOURCE_NAME=simplest,GLEAN_AUTHOR_EMAIL=crypt-captain-1532@gleanpartners.com'
+      - '--update-secrets=GLEAN_INDEXING_API_TOKEN=simplest-glean-indexing-token:latest'
 
 images:
   - 'gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
