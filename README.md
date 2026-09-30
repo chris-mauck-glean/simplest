@@ -1,6 +1,6 @@
 # Simplest
 
-A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, announcements, and community updates. Browser edits are saved in `localStorage`.
+A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, announcements, and community updates. Browser edits are saved in that browser’s `localStorage` and are not shared across devices.
 
 ## Run locally
 
