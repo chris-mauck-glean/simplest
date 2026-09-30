@@ -1,0 +1,25 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - -t
+      - 'gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
+      - .
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - 'gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - simplest
+      - '--image=gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
+      - '--region=us-east1'
+      - '--platform=managed'
+
+images:
+  - 'gcr.io/salessavvy-test/github.com/chris-mauck-glean/simplest:$COMMIT_SHA'
