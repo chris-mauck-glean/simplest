@@ -73,12 +73,13 @@
         <label class="field"><span>Content owner</span><input name="owner" placeholder="e.g. People Operations"></label>
         <label class="field"><span>Review by</span><input name="reviewDate" type="date"></label>
       </div>
-      <div class="editor-footnote"><span class="mini-shield">✓</span> Drafts stay in this browser until published.</div>
+      <div class="editor-footnote"><span class="mini-shield">✓</span> Changes are saved for everyone. Drafts are hidden from employees until published.</div>
       <div class="modal-actions">
         <button type="button" class="button button-quiet" data-action="close-editor">Cancel</button>
+        <button type="button" class="button button-danger" data-action="delete" id="editor-delete" hidden>Delete</button>
         <span class="action-spacer"></span>
-        <button type="submit" class="button button-outline" value="in-review">Submit for review</button>
-        <button type="submit" class="button button-primary" value="draft">Save draft</button>
+        <button type="submit" class="button button-outline" value="draft">Save draft</button>
+        <button type="submit" class="button button-primary" value="published">Publish</button>
       </div>
     </form>
   </dialog>

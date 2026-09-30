@@ -72,11 +72,11 @@ import { contentItems } from './content.mjs'
   }
 
   function statusLabel(status) {
-    return ({ published: 'Published', draft: 'Draft', 'in-review': 'In review' })[status] || 'Draft'
+    return status === 'published' ? 'Published' : 'Draft'
   }
 
   function statusClass(status) {
-    return ({ published: 'status-published', draft: 'status-draft', 'in-review': 'status-in-review' })[status] || 'status-draft'
+    return status === 'published' ? 'status-published' : 'status-draft'
   }
 
   function typeIcon(type) {
@@ -84,7 +84,11 @@ import { contentItems } from './content.mjs'
   }
 
   function isOverdue(item) {
-    return item.status !== 'published' && item.reviewDate && item.reviewDate < demoDate
+    return Boolean(item.reviewDate && item.reviewDate < demoDate)
+  }
+
+  function needsAttention(item) {
+    return item.status !== 'published' || isOverdue(item)
   }
 
   function routeItems() {
@@ -118,16 +122,16 @@ import { contentItems } from './content.mjs'
 
   function renderHome() {
     const published = items.filter(item => item.status === 'published').length
-    const inReview = items.filter(item => item.status === 'in-review').length
-    const drafts = items.filter(item => item.status === 'draft').length
-    const attention = items.filter(item => item.status === 'in-review' || isOverdue(item)).sort((a, b) => (a.reviewDate || '').localeCompare(b.reviewDate || '')).slice(0, 3)
+    const drafts = items.filter(item => item.status !== 'published').length
+    const attentionAll = items.filter(needsAttention).sort((a, b) => Number(isOverdue(b)) - Number(isOverdue(a)) || (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+    const attention = attentionAll.slice(0, 3)
     const recent = [...items].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 4)
-    const attentionMarkup = attention.length ? attention.map(item => `<div class="attention-item"><i class="attention-marker ${isOverdue(item) ? 'overdue' : ''}"></i><div><strong>${escapeHtml(item.title)}</strong><small>${isOverdue(item) ? `Review date passed · ${humanDate(item.reviewDate)}` : `Waiting for review · ${humanDate(item.updatedAt)}`}</small></div></div>`).join('') : '<div class="empty-message">Nothing needs attention right now.</div>'
-    app.innerHTML = `${header('CONTENT OPERATIONS', 'Content overview', 'Create clear, trusted information—and keep it current.')}<section class="stats-grid">${statCard('Published pages', published, 'Available to employees', '▤')}${statCard('In review', inReview, 'Waiting for an owner', '◷')}${statCard('Drafts', drafts, 'Work in progress', '✎')}${statCard('Needs attention', attention.length, 'Review or publish next', '↗')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-heading"><div><h2>Recently updated</h2><p>Latest changes across your content</p></div><button class="text-link" type="button" data-view="content">View all content <span aria-hidden="true">→</span></button></div><div class="content-list">${recent.map(item => itemRow(item, true)).join('')}</div></section><div class="side-stack"><section class="panel attention-panel"><div class="panel-heading"><div><h2>Review queue</h2><p>Keep useful content up to date</p></div><span class="status-pill status-in-review">${attention.length} items</span></div>${attentionMarkup}</section><section class="panel integration-card"><span class="integration-label">GLEAN SANDBOX INDEX</span><h3>Published resources are indexed</h3><p>The employee resource library is searchable in the sandbox. New local edits require a manual index refresh.</p><span class="integration-state"><i></i> All sandbox users · manual refresh</span></section></div></div><section class="panel library-panel"><div class="panel-heading"><div><h2>Content library</h2><p>A quick view of pages, newsletters, and community updates</p></div><button class="text-link" type="button" data-view="content">Open library <span aria-hidden="true">→</span></button></div>${renderTable(recent)}</section>`
+    const attentionMarkup = attention.length ? attention.map(item => `<div class="attention-item" role="button" tabindex="0" data-open="${escapeHtml(item.id)}"><i class="attention-marker ${isOverdue(item) ? 'overdue' : ''}"></i><div><strong>${escapeHtml(item.title)}</strong><small>${isOverdue(item) ? `Review date passed · ${humanDate(item.reviewDate)}` : `Draft · updated ${humanDate(item.updatedAt)}`}</small></div></div>`).join('') : '<div class="empty-message">Nothing needs attention right now.</div>'
+    app.innerHTML = `${header('CONTENT OPERATIONS', 'Content overview', 'Create clear, trusted information—and keep it current.')}<section class="stats-grid">${statCard('Published pages', published, 'Available to employees', '▤')}${statCard('Drafts', drafts, 'Not yet published', '✎')}${statCard('Total content', items.length, 'Pages, newsletters, and updates', '◷')}${statCard('Needs attention', attentionAll.length, 'Publish or refresh next', '↗')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-heading"><div><h2>Recently updated</h2><p>Latest changes across your content</p></div><button class="text-link" type="button" data-view="content">View all content <span aria-hidden="true">→</span></button></div><div class="content-list">${recent.map(item => itemRow(item, true)).join('')}</div></section><div class="side-stack"><section class="panel attention-panel"><div class="panel-heading"><div><h2>Needs attention</h2><p>Drafts to publish and content past its review date</p></div><span class="status-pill status-attention">${attentionAll.length} ${attentionAll.length === 1 ? 'item' : 'items'}</span></div>${attentionMarkup}</section><section class="panel integration-card"><span class="integration-label">GLEAN SANDBOX INDEX</span><h3>Published resources are indexed</h3><p>The employee resource library is searchable in the sandbox. CMS changes reach Glean after a manual index refresh.</p><span class="integration-state"><i></i> All sandbox users · manual refresh</span></section></div></div><section class="panel library-panel"><div class="panel-heading"><div><h2>Content library</h2><p>A quick view of pages, newsletters, and community updates</p></div><button class="text-link" type="button" data-view="content">Open library <span aria-hidden="true">→</span></button></div>${renderTable(recent)}</section>`
   }
 
   function statusTabs(current) {
-    const tabs = [['all', 'All'], ['draft', 'Drafts'], ['in-review', 'In review'], ['published', 'Published']]
+    const tabs = [['all', 'All'], ['draft', 'Drafts'], ['published', 'Published']]
     return tabs.map(([key, label]) => `<button type="button" class="filter-tab ${current === key ? 'active' : ''}" data-status="${key}">${label}</button>`).join('')
   }
 
@@ -140,7 +144,7 @@ import { contentItems } from './content.mjs'
     const names = {
       content: ['PAGES & GUIDES', 'Pages & guidance', 'Find current policies, how-to guides, and employee resources.', 'Create page'],
       newsletters: ['EMPLOYEE COMMUNICATIONS', 'Newsletters', 'Prepare employee updates from clear, current source content.', 'Create newsletter'],
-      communities: ['COMMUNITY CONTENT', 'Communities', 'Keep community updates and ideas organized for review.', 'Create update'],
+      communities: ['COMMUNITY CONTENT', 'Communities', 'Keep community updates and ideas organized and current.', 'Create update'],
     }
     const [eyebrow, title, description, createLabel] = names[state.view]
     const rows = routeItems()
@@ -149,8 +153,8 @@ import { contentItems } from './content.mjs'
 
   function renderInsights() {
     const published = items.filter(item => item.status === 'published').length
-    const inReview = items.filter(item => item.status === 'in-review').length
-    app.innerHTML = `${header('CONTENT PERFORMANCE', 'Insights', 'Track publishing activity, content freshness, and employee engagement.', 'Create content')}<div class="insights-grid"><article class="insight-stat"><span>Page views this month</span><strong>2,418</strong><small>↗ 12% vs. last month</small></article><article class="insight-stat"><span>Newsletter opens</span><strong>68%</strong><small>↗ 4 pts vs. last month</small></article><article class="insight-stat"><span>Published content</span><strong>${published}</strong><small>${inReview} awaiting review</small></article></div><section class="panel chart-panel"><div class="panel-heading"><div><h2>Content engagement</h2><p>Monthly page engagement</p></div><span class="integration-state"><i></i> Illustrative data</span></div><div class="chart-area" role="img" aria-label="Illustrative bar chart showing content engagement from April to September"><div class="chart-column"><div class="chart-bar" style="height:35%"></div><small>Apr</small></div><div class="chart-column"><div class="chart-bar" style="height:52%"></div><small>May</small></div><div class="chart-column"><div class="chart-bar" style="height:44%"></div><small>Jun</small></div><div class="chart-column"><div class="chart-bar" style="height:69%"></div><small>Jul</small></div><div class="chart-column"><div class="chart-bar" style="height:61%"></div><small>Aug</small></div><div class="chart-column"><div class="chart-bar emphasis" style="height:84%"></div><small>Sep</small></div></div><p class="chart-caption">Engagement figures are illustrative and do not update from live page views, newsletter opens, or clicks.</p></section><p class="insight-note"><strong>Product boundary:</strong> This page represents CMS-side engagement reporting. Glean Insights would show Glean usage and search/AI activity separately.</p>`
+    const drafts = items.length - published
+    app.innerHTML = `${header('CONTENT PERFORMANCE', 'Insights', 'Track publishing activity, content freshness, and employee engagement.', 'Create content')}<div class="insights-grid"><article class="insight-stat"><span>Page views this month</span><strong>2,418</strong><small>↗ 12% vs. last month</small></article><article class="insight-stat"><span>Newsletter opens</span><strong>68%</strong><small>↗ 4 pts vs. last month</small></article><article class="insight-stat"><span>Published content</span><strong>${published}</strong><small>${drafts} ${drafts === 1 ? 'draft' : 'drafts'} not yet published</small></article></div><section class="panel chart-panel"><div class="panel-heading"><div><h2>Content engagement</h2><p>Monthly page engagement</p></div><span class="integration-state"><i></i> Illustrative data</span></div><div class="chart-area" role="img" aria-label="Illustrative bar chart showing content engagement from April to September"><div class="chart-column"><div class="chart-bar" style="height:35%"></div><small>Apr</small></div><div class="chart-column"><div class="chart-bar" style="height:52%"></div><small>May</small></div><div class="chart-column"><div class="chart-bar" style="height:44%"></div><small>Jun</small></div><div class="chart-column"><div class="chart-bar" style="height:69%"></div><small>Jul</small></div><div class="chart-column"><div class="chart-bar" style="height:61%"></div><small>Aug</small></div><div class="chart-column"><div class="chart-bar emphasis" style="height:84%"></div><small>Sep</small></div></div><p class="chart-caption">Engagement figures are illustrative and do not update from live page views, newsletter opens, or clicks.</p></section><p class="insight-note"><strong>Product boundary:</strong> This page represents CMS-side engagement reporting. Glean Insights would show Glean usage and search/AI activity separately.</p>`
   }
 
   function render() {
@@ -172,7 +176,7 @@ import { contentItems } from './content.mjs'
       url.searchParams.set('doc', item.id)
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
     }
-    previewContent.innerHTML = `<div class="preview-header"><div><p class="eyebrow">${escapeHtml(item.type.toUpperCase())} · ${escapeHtml(item.owner || 'UNASSIGNED')}</p><h2 id="preview-title">${escapeHtml(item.title)}</h2><p class="preview-summary">${escapeHtml(item.summary || 'No summary added yet.')}</p></div><button type="button" class="close-button" data-action="close-preview" aria-label="Close">×</button></div><div class="preview-metadata"><div><span>Status</span><strong><i class="status-pill ${statusClass(item.status)}">${statusLabel(item.status)}</i></strong></div><div><span>Audience</span><strong>${escapeHtml(item.audience || 'All employees')}</strong></div><div><span>Updated</span><strong>${humanDate(item.updatedAt)}</strong></div><div><span>Review by</span><strong>${humanDate(item.reviewDate)}</strong></div></div><div class="preview-body">${escapeHtml(item.body || 'No content added yet.')}</div><div class="preview-footer"><button type="button" class="button button-quiet" data-action="close-preview">Close</button><span class="action-spacer"></span>${item.status !== 'published' ? '<button type="button" class="button button-outline" data-action="publish" data-id="' + escapeHtml(item.id) + '">Publish page</button>' : ''}<button type="button" class="button button-primary" data-action="edit" data-id="${escapeHtml(item.id)}">Edit content</button></div><p class="preview-disclaimer">Local preview. Changes stay in this browser and do not update the Glean index automatically.</p>`
+    previewContent.innerHTML = `<div class="preview-header"><div><p class="eyebrow">${escapeHtml(item.type.toUpperCase())} · ${escapeHtml(item.owner || 'UNASSIGNED')}</p><h2 id="preview-title">${escapeHtml(item.title)}</h2><p class="preview-summary">${escapeHtml(item.summary || 'No summary added yet.')}</p></div><button type="button" class="close-button" data-action="close-preview" aria-label="Close">×</button></div><div class="preview-metadata"><div><span>Status</span><strong><i class="status-pill ${statusClass(item.status)}">${statusLabel(item.status)}</i></strong></div><div><span>Audience</span><strong>${escapeHtml(item.audience || 'All employees')}</strong></div><div><span>Updated</span><strong>${humanDate(item.updatedAt)}</strong></div><div><span>Review by</span><strong>${humanDate(item.reviewDate)}</strong></div></div><div class="preview-body">${escapeHtml(item.body || 'No content added yet.')}</div><div class="preview-footer"><button type="button" class="button button-quiet" data-action="close-preview">Close</button><button type="button" class="button button-danger" data-action="delete" data-id="${escapeHtml(item.id)}">Delete</button><span class="action-spacer"></span>${item.status !== 'published' ? '<button type="button" class="button button-outline" data-action="publish" data-id="' + escapeHtml(item.id) + '">Publish page</button>' : ''}<button type="button" class="button button-primary" data-action="edit" data-id="${escapeHtml(item.id)}">Edit content</button></div><p class="preview-disclaimer">Changes are saved for everyone. The Glean index is not updated automatically.</p>`
     if (!previewDialog.open) previewDialog.showModal()
   }
 
@@ -201,6 +205,9 @@ import { contentItems } from './content.mjs'
     editorForm.elements.owner.value = item ? item.owner : ''
     editorForm.elements.reviewDate.value = item ? item.reviewDate : ''
     document.getElementById('editor-title').textContent = item ? 'Edit content' : 'Create content'
+    const deleteButton = document.getElementById('editor-delete')
+    deleteButton.hidden = !item
+    deleteButton.dataset.id = item ? item.id : ''
     if (previewDialog.open) closePreview()
     editorDialog.showModal()
     editorForm.elements.title.focus()
@@ -243,7 +250,27 @@ import { contentItems } from './content.mjs'
     if (action.dataset.action === 'close-editor') editorDialog.close()
     if (action.dataset.action === 'close-preview') closePreview()
     if (action.dataset.action === 'publish') publishItem(action)
+    if (action.dataset.action === 'delete') deleteItem(action)
   })
+
+  async function deleteItem(button) {
+    const item = items.find(entry => entry.id === button.dataset.id)
+    if (!item || !requireApi() || button.disabled) return
+    if (!window.confirm(`Delete “${item.title}”? It will be removed from Simplest for everyone.`)) return
+    button.disabled = true
+    try {
+      await api(`/${encodeURIComponent(item.id)}`, { method: 'DELETE' })
+      items = items.filter(entry => entry.id !== item.id)
+      if (editorDialog.open) editorDialog.close()
+      closePreview()
+      render()
+      showToast(`Deleted “${item.title}.”`)
+    } catch (error) {
+      showToast(`Could not delete: ${error.message}`)
+    } finally {
+      button.disabled = false
+    }
+  }
 
   async function publishItem(button) {
     const id = button.dataset.id
@@ -289,7 +316,7 @@ import { contentItems } from './content.mjs'
     const formData = new FormData(editorForm)
     const id = String(formData.get('id') || '')
     const existing = items.find(item => item.id === id)
-    const status = event.submitter?.value === 'in-review' ? 'in-review' : 'draft'
+    const status = event.submitter?.value === 'published' ? 'published' : 'draft'
     const targetId = existing ? existing.id : `content-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const fields = {
       title: String(formData.get('title') || '').trim(),
@@ -309,7 +336,7 @@ import { contentItems } from './content.mjs'
       upsertItem(item)
       editorDialog.close()
       render()
-      showToast(status === 'in-review' ? 'Submitted for review in Simplest.' : 'Draft saved in Simplest.')
+      showToast(status === 'published' ? 'Published in Simplest. It is not synced to Glean yet.' : 'Draft saved in Simplest.')
     } catch (error) {
       showToast(`Could not save: ${error.message}`)
     } finally {

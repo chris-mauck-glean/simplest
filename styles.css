@@ -82,6 +82,9 @@ h1 { margin: 0; font: 700 26px/1.2 Manrope, sans-serif; letter-spacing: -.8px; }
 .button-outline:hover { background: #f6f8f5; }
 .button-quiet { color: #65736e; background: transparent; }
 .button-quiet:hover { background: #f1f4f1; }
+.button-danger { color: var(--red); background: transparent; }
+.button-danger:hover { background: var(--red-soft); }
+.button:disabled { opacity: 0.55; cursor: wait; }
 .button .plus { font-size: 16px; font-weight: 400; line-height: 1; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 19px; }
 .stat-card { min-height: 99px; position: relative; padding: 16px 17px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
@@ -110,7 +113,7 @@ h1 { margin: 0; font: 700 26px/1.2 Manrope, sans-serif; letter-spacing: -.8px; }
 .status-pill::before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ''; }
 .status-published { color: var(--green); background: var(--green-soft); }
 .status-draft { color: #61746c; background: #eef1ef; }
-.status-in-review { color: var(--amber); background: var(--amber-soft); }
+.status-attention { color: var(--amber); background: var(--amber-soft); }
 .side-stack { display: grid; gap: 15px; }
 .attention-panel { padding-bottom: 5px; }
 .attention-item { display: flex; gap: 10px; padding: 12px 17px; border-top: 1px solid #eff1ef; }

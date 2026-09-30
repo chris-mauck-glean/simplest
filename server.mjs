@@ -95,6 +95,11 @@ async function handleApi(request, response, pathname) {
     const fields = validateEdit(await readJson(request))
     return sendJson(response, 200, { item: await store.save(id, fields) })
   }
+  if (!action && request.method === 'DELETE') {
+    checkWriteRate(request)
+    await store.remove(id)
+    return sendJson(response, 200, { deleted: id })
+  }
   if (action === 'publish' && request.method === 'POST') {
     checkWriteRate(request)
     return sendJson(response, 200, { item: await store.publish(id) })
