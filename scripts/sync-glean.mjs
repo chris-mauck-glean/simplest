@@ -53,4 +53,8 @@ console.log(`Datasource check: urlRegex=${after.urlRegex}; test=${after.isTestDa
 
 const sent = await glean.replaceAll(published)
 for (const item of published) await store.setSyncStatus(item.id, 'synced').catch(() => {})
+if (process.argv.includes('--process-now')) {
+  await glean.processAll()
+  console.log('Requested immediate reprocessing of the datasource.')
+}
 console.log(`Sent ${sent} published documents to Glean. Indexing is asynchronous (typically 5–30 minutes).`)
