@@ -23,12 +23,7 @@ export const contentItems = [
     body: 'OCTOBER AT A GLANCE\nThis month’s employee update brings together upcoming learning sessions, workplace reminders, and resources teams have asked for. Add the events that matter to your calendar and share relevant links with your group.\n\nLEARNING\nThe October learning calendar includes short sessions on giving useful feedback, managing project handoffs, and working securely with shared files. Registration details are available in the learning portal.\n\nWORKPLACE\nCheck the office directory before visiting a different location. It includes current access instructions, room guidance, and local service contacts.\n\nPEOPLE RESOURCES\nThe benefits and wellbeing pages have been refreshed for the upcoming planning season. Review the current information in the employee portal and contact People Operations with individual questions.\n\nSTAY CONNECTED\nSend team announcements and event updates to Employee Communications with an owner, audience, and publish date.',
     audience: 'All employees', owner: 'Employee Communications', status: 'published', updatedAt: '2026-09-30', reviewDate: '2026-10-15',
   },
-  {
-    id: 'onboarding-ideas', title: 'New-starter community: October discussion and resources', type: 'Community update',
-    summary: 'Upcoming peer sessions and practical resources for employees in their first months.',
-    body: 'OCTOBER DISCUSSION\nThe new-starter community will meet this month to compare onboarding tips, ask questions about common tools, and meet colleagues from other teams. New employees and onboarding buddies are welcome.\n\nPEER SESSIONS\n• Week one: finding the right people and internal resources\n• Week two: planning a productive first one-to-one\n• Week three: organizing work across teams and locations\n\nGET READY\nBring one question you had during your first month and one resource that helped you. Do not share confidential project or employee information in the group.\n\nJOIN THE COMMUNITY\nUse the community directory to find the next session, review discussion notes, and volunteer as a peer buddy.',
-    audience: 'New employees', owner: 'Community Programs', status: 'published', updatedAt: '2026-09-26', reviewDate: '2026-10-31',
-  },
+
   {
     id: 'leadership-update', title: 'Quarterly priorities: service, clarity, and collaboration', type: 'Announcement',
     summary: 'A leadership update on improving employee service, communication, and cross-team work.',

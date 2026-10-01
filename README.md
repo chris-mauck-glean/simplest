@@ -1,6 +1,6 @@
 # Simplest
 
-A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, announcements, and community updates. Content is stored in the Firestore database `simplest` (project `salessavvy-test`) through the server’s `/api/content` API, so edits are shared across devices. Anyone who can reach the site can edit; every change keeps the previous version in a `history` subcollection. Without `FIRESTORE_DATABASE` set, the server uses an in-memory store for local development.
+A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, and announcements. Content is stored in the Firestore database `simplest` (project `salessavvy-test`) through the server’s `/api/content` API, so edits are shared across devices. Anyone who can reach the site can edit; every change keeps the previous version in a `history` subcollection. Without `FIRESTORE_DATABASE` set, the server uses an in-memory store for local development.
 
 Seed the bundled resources (never overwrites existing documents):
 
@@ -24,7 +24,7 @@ Use the Dockerfile at `/Dockerfile` with build context `/`. It starts the Node.j
 
 ## CMS features
 
-- Overview, pages and guidance, newsletters, communities, and insights views
+- Overview, pages and guidance, newsletters, and insights views
 - Create and edit content with audience, owner, and review-date metadata
 - Save drafts, submit pages for review, and publish locally
 - Search and filter the employee resource library
