@@ -30,7 +30,7 @@ Use the Dockerfile at `/Dockerfile` with build context `/`. It starts the Node.j
 
 ## CMS features
 
-- Overview, pages and guidance, newsletters, and insights views
+- Overview, pages and guidance, announcements, newsletters, and insights views
 - Create and edit content with audience, owner, and review-date metadata
 - Save drafts, submit pages for review, and publish locally
 - Search and filter the employee resource library

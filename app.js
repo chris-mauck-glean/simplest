@@ -96,7 +96,8 @@ import { contentItems } from './content.mjs'
 
   // Which content types belong to each sidebar section. The sidebar counts and the tabs share this.
   const SECTION_FILTERS = {
-    newsletters: item => ['Newsletter', 'Announcement'].includes(item.type),
+    announcements: item => item.type === 'Announcement',
+    newsletters: item => item.type === 'Newsletter',
     content: item => !['Newsletter', 'Announcement'].includes(item.type),
   }
 
@@ -138,7 +139,7 @@ import { contentItems } from './content.mjs'
     const attention = attentionAll.slice(0, 3)
     const recent = [...items].sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || '')).slice(0, 4)
     const attentionMarkup = attention.length ? attention.map(item => `<div class="attention-item" role="button" tabindex="0" data-open="${escapeHtml(item.id)}"><i class="attention-marker ${isOverdue(item) ? 'overdue' : ''}"></i><div><strong>${escapeHtml(item.title)}</strong><small>${isOverdue(item) ? `Review date passed · ${humanDate(item.reviewDate)}` : `Draft · updated ${humanDate(item.updatedAt)}`}</small></div></div>`).join('') : '<div class="empty-message">Nothing needs attention right now.</div>'
-    app.innerHTML = `${header('CONTENT OPERATIONS', 'Content overview', 'Create clear, trusted information—and keep it current.')}<section class="stats-grid">${statCard('Published pages', published, 'Available to employees', '▤')}${statCard('Drafts', drafts, 'Not yet published', '✎')}${statCard('Total content', items.length, 'Pages, newsletters, and updates', '◷')}${statCard('Needs attention', attentionAll.length, 'Publish or refresh next', '↗')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-heading"><div><h2>Recently updated</h2><p>Latest changes across your content</p></div><button class="text-link" type="button" data-view="content">View all content <span aria-hidden="true">→</span></button></div><div class="content-list">${recent.map(item => itemRow(item, true)).join('')}</div></section><div class="side-stack"><section class="panel attention-panel"><div class="panel-heading"><div><h2>Needs attention</h2><p>Drafts to publish and content past its review date</p></div><span class="status-pill status-attention">${attentionAll.length} ${attentionAll.length === 1 ? 'item' : 'items'}</span></div>${attentionMarkup}</section><section class="panel integration-card"><span class="integration-label">PUBLISHING</span><h3>Published content is live</h3><p>Published pages, newsletters, and updates are available to employees right away. Drafts stay private until you publish them.</p><span class="integration-state"><i></i> All employees · live</span></section></div></div><section class="panel library-panel"><div class="panel-heading"><div><h2>Content library</h2><p>A quick view of pages and newsletters</p></div><button class="text-link" type="button" data-view="content">Open library <span aria-hidden="true">→</span></button></div>${renderTable(recent)}</section>`
+    app.innerHTML = `${header('CONTENT OPERATIONS', 'Content overview', 'Create clear, trusted information—and keep it current.')}<section class="stats-grid">${statCard('Published pages', published, 'Available to employees', '▤')}${statCard('Drafts', drafts, 'Not yet published', '✎')}${statCard('Total content', items.length, 'Pages, announcements, and newsletters', '◷')}${statCard('Needs attention', attentionAll.length, 'Publish or refresh next', '↗')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-heading"><div><h2>Recently updated</h2><p>Latest changes across your content</p></div><button class="text-link" type="button" data-view="content">View all content <span aria-hidden="true">→</span></button></div><div class="content-list">${recent.map(item => itemRow(item, true)).join('')}</div></section><div class="side-stack"><section class="panel attention-panel"><div class="panel-heading"><div><h2>Needs attention</h2><p>Drafts to publish and content past its review date</p></div><span class="status-pill status-attention">${attentionAll.length} ${attentionAll.length === 1 ? 'item' : 'items'}</span></div>${attentionMarkup}</section><section class="panel integration-card"><span class="integration-label">PUBLISHING</span><h3>Published content is live</h3><p>Published pages, announcements, and newsletters are available to employees right away. Drafts stay private until you publish them.</p><span class="integration-state"><i></i> All employees · live</span></section></div></div><section class="panel library-panel"><div class="panel-heading"><div><h2>Content library</h2><p>A quick view of pages, announcements, and newsletters</p></div><button class="text-link" type="button" data-view="content">Open library <span aria-hidden="true">→</span></button></div>${renderTable(recent)}</section>`
   }
 
   function statusTabs(current) {
@@ -154,6 +155,7 @@ import { contentItems } from './content.mjs'
   function renderLibrary() {
     const names = {
       content: ['PAGES & GUIDES', 'Pages & guidance', 'Find current policies, how-to guides, and employee resources.', 'Create page'],
+      announcements: ['EMPLOYEE COMMUNICATIONS', 'Announcements', 'Share company news, updates, and important notices with employees.', 'Create announcement'],
       newsletters: ['EMPLOYEE COMMUNICATIONS', 'Newsletters', 'Prepare employee updates from clear, current source content.', 'Create newsletter'],
     }
     const [eyebrow, title, description, createLabel] = names[state.view]
@@ -169,7 +171,7 @@ import { contentItems } from './content.mjs'
 
   function render() {
     document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === state.view))
-    const labels = { home: 'Overview', content: 'Pages & guidance', newsletters: 'Newsletters', insights: 'Insights' }
+    const labels = { home: 'Overview', content: 'Pages & guidance', announcements: 'Announcements', newsletters: 'Newsletters', insights: 'Insights' }
     document.getElementById('breadcrumb-current').textContent = labels[state.view] || 'Overview'
     document.querySelectorAll('[data-count]').forEach(badge => { badge.textContent = sectionItems(badge.dataset.count).length })
     if (state.view === 'home') renderHome()
@@ -208,7 +210,7 @@ import { contentItems } from './content.mjs'
     editorForm.reset()
     editorForm.elements.id.value = item ? item.id : ''
     editorForm.elements.title.value = item ? item.title : ''
-    editorForm.elements.type.value = item ? item.type : (state.view === 'newsletters' ? 'Newsletter' : 'Policy')
+    editorForm.elements.type.value = item ? item.type : ({ newsletters: 'Newsletter', announcements: 'Announcement' }[state.view] || 'Policy')
     editorForm.elements.audience.value = item ? item.audience : 'All employees'
     editorForm.elements.summary.value = item ? item.summary : ''
     editorForm.elements.body.value = item ? item.body : ''
