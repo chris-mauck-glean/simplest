@@ -3,6 +3,9 @@ import { contentItems } from './content.mjs'
 (() => {
   'use strict'
 
+  // The server renders the requested article for non-JavaScript readers; the app shows its own preview instead.
+  document.getElementById('server-document')?.remove()
+
   const OLD_STORAGE_KEYS = ['simplest-demo-content-v1', 'simplest-employee-content-v2']
   const demoDate = '2026-09-30'
   const app = document.getElementById('app')

@@ -9,6 +9,7 @@ import { createGleanSync } from './lib/glean.mjs'
 const siteRoot = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT || 8080)
 const store = createStore()
+const publicBaseUrl = (process.env.SIMPLEST_BASE_URL || 'https://simplest.cloud.run').replace(/\/+$/, '')
 
 let glean = null
 try {
@@ -146,7 +147,48 @@ async function handleApi(request, response, pathname) {
   throw new HttpError(405, 'Method not allowed.')
 }
 
-async function serveFile(request, response, pathname) {
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
+}
+
+// Renders a published item into the page HTML so that clients without JavaScript
+// (link previews, document readers, crawlers) receive the article, not only the app shell.
+function renderDocumentHtml(html, item, canonicalUrl) {
+  const blocks = String(item.body || '').split(/\n\s*\n/).map(block => block.trim()).filter(Boolean)
+  const bodyHtml = blocks.map(block => {
+    const lines = block.split('\n').map(line => line.trim()).filter(Boolean)
+    const bullets = lines.filter(line => /^[•\-*]\s+/.test(line))
+    const text = lines.filter(line => !/^[•\-*]\s+/.test(line))
+    const heading = text.length && /^[^a-z]+$/.test(text[0]) && text[0].length <= 80 ? text.shift() : ''
+    return [
+      heading ? `<h2>${escapeHtml(heading)}</h2>` : '',
+      text.length ? `<p>${text.map(escapeHtml).join('<br>')}</p>` : '',
+      bullets.length ? `<ul>${bullets.map(line => `<li>${escapeHtml(line.replace(/^[•\-*]\s+/, ''))}</li>`).join('')}</ul>` : '',
+    ].join('')
+  }).join('\n')
+  const meta = [item.type, item.audience && `Audience: ${item.audience}`, item.owner && `Owner: ${item.owner}`, item.updatedAt && `Updated: ${item.updatedAt}`]
+    .filter(Boolean).map(escapeHtml).join(' · ')
+  const article = `<article id="server-document" class="server-document">
+<h1>${escapeHtml(item.title)}</h1>
+<p class="server-document-meta">${meta}</p>
+${item.summary ? `<p class="server-document-summary">${escapeHtml(item.summary)}</p>` : ''}
+${bodyHtml}
+</article>`
+  const head = `<title>${escapeHtml(item.title)} — Simplest</title>
+  <meta name="description" content="${escapeHtml(item.summary || item.title)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">`
+  return html
+    .replace(/<title>[^<]*<\/title>/, () => head)
+    .replace(/<body>/, () => `<body>\n${article}`)
+}
+
+async function findPublished(id) {
+  if (!isValidId(id)) return null
+  const items = await store.list()
+  return items.find(item => item.id === id && item.status === 'published') || null
+}
+
+async function serveFile(request, response, pathname, searchParams) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     response.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' })
     response.end('Method not allowed\n')
@@ -159,7 +201,18 @@ async function serveFile(request, response, pathname) {
     response.end('Not found\n')
     return
   }
-  const body = await readFile(resolve(siteRoot, `.${pathname}`))
+  let body = await readFile(resolve(siteRoot, `.${pathname}`))
+  const docId = pathname === '/index.html' ? searchParams?.get('doc') : null
+  if (docId) {
+    const item = await findPublished(docId).catch(error => {
+      console.error('Could not load document for page render.', error)
+      return null
+    })
+    if (item) {
+      const canonicalUrl = `${publicBaseUrl}/?doc=${encodeURIComponent(item.id)}`
+      body = Buffer.from(renderDocumentHtml(body.toString('utf8'), item, canonicalUrl))
+    }
+  }
   response.writeHead(200, {
     'Cache-Control': 'no-cache',
     'Content-Length': body.byteLength,
@@ -171,8 +224,11 @@ async function serveFile(request, response, pathname) {
 
 const server = createServer(async (request, response) => {
   let pathname
+  let searchParams
   try {
-    pathname = decodeURIComponent(new URL(request.url || '/', 'http://localhost').pathname)
+    const requestUrl = new URL(request.url || '/', 'http://localhost')
+    pathname = decodeURIComponent(requestUrl.pathname)
+    searchParams = requestUrl.searchParams
   } catch {
     response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' })
     response.end('Bad request\n')
@@ -182,7 +238,7 @@ const server = createServer(async (request, response) => {
   const isApi = pathname === '/api' || pathname.startsWith('/api/')
   try {
     if (isApi) await handleApi(request, response, pathname)
-    else await serveFile(request, response, pathname)
+    else await serveFile(request, response, pathname, searchParams)
   } catch (error) {
     if (!isApi) {
       const status = error.code === 'ENOENT' ? 404 : 500

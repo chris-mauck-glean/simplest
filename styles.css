@@ -253,3 +253,7 @@ td:first-child { min-width: 245px; color: #2d423b; }
   .modal-actions .action-spacer { flex-basis: 100%; height: 0; }
   .modal-actions > button { flex: 1; }
 }
+
+/* Server-rendered article for clients without JavaScript; removed when the app starts. */
+.server-document { max-width: 760px; margin: 32px auto; padding: 0 24px; line-height: 1.6; }
+.server-document-meta { color: #5b6470; font-size: 0.9rem; }

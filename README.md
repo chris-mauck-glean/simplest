@@ -2,6 +2,12 @@
 
 A local CMS prototype for an employee experience workspace. It includes a library of workplace guides, FAQs, policies, and announcements. Content is stored in the Firestore database `simplest` (project `salessavvy-test`) through the server’s `/api/content` API, so edits are shared across devices. Anyone who can reach the site can edit; every change keeps the previous version in a `history` subcollection. Without `FIRESTORE_DATABASE` set, the server uses an in-memory store for local development.
 
+Run locally against the shared Firestore data at http://localhost:4173 (needs `gcloud auth application-default login`; Glean settings are read from `../.env`, so local edits sync to Glean the same way as the live site):
+
+```sh
+npm run dev
+```
+
 Seed the bundled resources (never overwrites existing documents):
 
 ```sh
